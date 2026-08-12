@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilan de Renouvellement 2026 — Courtier</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #04111e; --bg2: #071e36; --bg3: #0a2a4a;
+    --border: #1a4a72; --accent: #38bdf8; --green: #34d399;
+    --red: #f87171; --yellow: #fbbf24; --text: #e0f2fe;
+    --text2: #7dd3fc; --hover: #0c3358;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; min-height: 100vh; }
+
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 14px; }
+  header .logo { font-size: 22px; }
+  header h1 { font-size: 18px; font-weight: 600; color: var(--text); }
+  header .subtitle { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  .container { max-width: 100%; padding: 20px 24px; }
+
+  /* Upload zone */
+  .upload-zone { background: var(--bg2); border: 2px dashed var(--border); border-radius: 10px; padding: 40px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 24px; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(88,166,255,.05); }
+  .upload-zone .icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-zone p { color: var(--text2); font-size: 14px; }
+  .upload-zone p b { color: var(--accent); cursor: pointer; }
+  .upload-zone input { display: none; }
+  .file-name { margin-top: 8px; font-size: 12px; color: var(--green); }
+  .btn-generate { margin-top: 16px; background: var(--green); border: none; border-radius: 8px; padding: 11px 28px; color: #0d1117; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; display: none; }
+  .btn-generate:hover { background: #56d364; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab { padding: 9px 18px; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; font-size: 13px; font-weight: 500; transition: all .15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Controls bar */
+  .controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .search-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 13px; width: 220px; }
+  .search-box:focus { outline: none; border-color: var(--accent); }
+  .search-box::placeholder { color: var(--text2); }
+  .btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; color: var(--text); font-size: 12px; cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 6px; }
+  .btn:hover { background: var(--hover); border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #0d1117; font-weight: 600; }
+  .btn.primary:hover { background: #79b8ff; border-color: #79b8ff; }
+  .badge { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 3px 10px; font-size: 12px; color: var(--text2); margin-left: auto; }
+
+  /* Table */
+  .table-wrap { overflow: auto; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 1600px; }
+  thead tr { background: var(--bg3); position: sticky; top: 0; z-index: 2; }
+  th { padding: 10px 10px; text-align: center; font-size: 11px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: normal; line-height: 1.3; min-width: 80px; cursor: pointer; user-select: none; }
+  th:first-child { text-align: left; min-width: 160px; max-width: 220px; position: sticky; left: 0; z-index: 3; background: var(--bg3); }
+  th.sort-asc::after { content: ' ↑'; color: var(--accent); }
+  th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+  th:hover { color: var(--text); background: var(--hover); }
+  th.yellow { background: rgba(210,153,34,.15); color: var(--yellow); }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); text-align: right; white-space: nowrap; }
+  td:first-child { text-align: left; position: sticky; left: 0; background: var(--bg2); z-index: 1; font-weight: 500; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  tr:hover td { background: var(--hover); }
+  tr:hover td:first-child { background: var(--hover); }
+  tr.totals td { background: var(--bg3); font-weight: 700; border-top: 2px solid var(--accent); color: var(--text); }
+  tr.totals td:first-child { background: var(--bg3); color: var(--accent); }
+
+  .num { font-family: 'Courier New', monospace; }
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+  .yellow-text { color: var(--yellow); }
+  .accent { color: var(--accent); }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 60px 20px; color: var(--text2); }
+  .empty .icon { font-size: 48px; margin-bottom: 16px; }
+  .empty h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+
+  /* Stats cards */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat-card .label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .stat-card .value { font-size: 20px; font-weight: 700; }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.red { color: var(--red); }
+  .stat-card .value.accent { color: var(--accent); }
+  .stat-card .value.yellow { color: var(--yellow); }
+
+  @media (max-width: 768px) {
+    .container { padding: 12px; }
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📊</div>
+  <div>
+    <h1>Bilan de Renouvellement 2026 — Courtier</h1>
+    <div class="subtitle">Analyse par souscripteur &amp; intermédiaire · Hors Auto et Transport</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone">
+    <div class="icon">📂</div>
+    <p>Glissez votre fichier Excel ici ou <b onclick="document.getElementById('fileInput').click()">parcourir</b></p>
+    <p style="font-size:11px;margin-top:6px;">Fichier attendu : <code style="color:var(--accent)">Bilan de renouvellement 2026 (courtier) .xlsx</code></p>
+    <div class="file-name" id="fileName"></div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <button class="btn-generate" id="btnGenerate" onclick="generateBilan()">⚙️ Générer le bilan</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="statsCards" style="display:none">
+    <div class="stat-card"><div class="label">Résiliations reçues</div><div class="value accent" id="statResil">—</div></div>
+    <div class="stat-card"><div class="label">AN Retenus (prime réalisée)</div><div class="value green" id="statRetenus">—</div></div>
+    <div class="stat-card"><div class="label">Récupérations</div><div class="value green" id="statRecup">—</div></div>
+    <div class="stat-card"><div class="label">Perdues</div><div class="value red" id="statPerdues">—</div></div>
+    <div class="stat-card"><div class="label">% Récup BRUT global</div><div class="value yellow" id="statPctBrut">—</div></div>
+    <div class="stat-card"><div class="label">% Récup NET global</div><div class="value yellow" id="statPctNet">—</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="appTabs" style="display:none">
+    <div class="tab active" data-tab="sous" onclick="switchTab('sous')">👤 Par Souscripteur</div>
+    <div class="tab" data-tab="intermed" onclick="switchTab('intermed')">🏢 Par Intermédiaire</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls" id="appControls" style="display:none">
+    <input type="text" class="search-box" id="searchBox" placeholder="🔍 Rechercher..." oninput="filterTable()">
+    <button class="btn" onclick="exportExcel()">⬇️ Exporter Excel</button>
+    <div class="badge" id="rowCount"></div>
+  </div>
+
+  <!-- Tables -->
+  <div id="tableContainer">
+    <div class="empty">
+      <div class="icon">📋</div>
+      <h3>Importez votre fichier Excel</h3>
+      <p>Importez votre fichier puis cliquez sur <b style="color:var(--green)">Générer le bilan</b></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────
+let currentTab = 'sous';
+let bilanSous = [];
+let bilanIntermed = [];
+let sortCol = -1, sortDir = 1;
+let pendingData = null;
+
+// ─── Upload handling ─────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+function arrayToBase64(buf) {
+  let b = '', u = new Uint8Array(buf);
+  for (let i = 0; i < u.length; i++) b += String.fromCharCode(u[i]);
+  return btoa(b);
+}
+function base64ToArray(b64) {
+  const b = atob(b64), u = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+  return u;
+}
+function setFileReady(name, note) {
+  document.getElementById('fileName').textContent = '📎 ' + name + (note ? '  ' + note : '');
+  document.getElementById('btnGenerate').style.display = 'inline-block';
+}
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      pendingData = new Uint8Array(e.target.result);
+      try {
+        localStorage.setItem('bilan_data', arrayToBase64(e.target.result));
+        localStorage.setItem('bilan_name', file.name);
+      } catch(_) { /* fichier trop lourd pour localStorage */ }
+      setFileReady(file.name, '');
+    } catch(err) { alert('Erreur : ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Restaurer le fichier mémorisé au chargement ──
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('bilan_data');
+  const name  = localStorage.getItem('bilan_name');
+  if (saved && name) {
+    try {
+      pendingData = base64ToArray(saved);
+      setFileReady(name, '⟳ mémorisé');
+    } catch(_) { localStorage.removeItem('bilan_data'); }
+  }
+});
+
+function generateBilan() {
+  if (!pendingData) return;
+  const btn = document.getElementById('btnGenerate');
+  btn.textContent = '⏳ Génération en cours...';
+  btn.disabled = true;
+  setTimeout(() => {
+    try {
+      processExcel(pendingData);
+    } catch(err) {
+      alert('Erreur : ' + err.message);
+    }
+    btn.textContent = '✅ Bilan généré — Regénérer';
+    btn.disabled = false;
+  }, 50);
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+function norm(v) { return (v || '').toString().trim().toLowerCase(); }
+function fmtNum(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return new Intl.NumberFormat('fr-MA', {minimumFractionDigits: 0, maximumFractionDigits: 0}).format(v);
+}
+function fmtPct(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return v.toFixed(1) + '%';
+}
+function safeParse(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+function isAutoOrTransport(branche) {
+  const b = norm(branche);
+  return b.includes('auto') || b.includes('transport');
+}
+function isRT(branche) {
+  return norm(branche) === 'rt';
+}
+
+function hasTG(v) {
+  if (v === null || v === undefined) return false;
+  const s = v.toString().trim();
+  return s !== '' && s.toLowerCase() !== 'null' && s.toLowerCase() !== 'nan' && s !== '0';
+}
+
+// ─── Excel Processing ─────────────────────────────────────────────────
+function processExcel(data) {
+  const wb = XLSX.read(data, { type: 'array', cellDates: false });
+
+  // ── Sheet 1 : Fiche des consultations ──
+  const sheetNames = wb.SheetNames;
+  const findSheet = (keyword) => sheetNames.find(n => n.toLowerCase().replace(/\s+/g,' ').trim().includes(keyword.toLowerCase()));
+  const sheetConsult = findSheet('consultation');
+  const sheetResil = findSheet('resili');
+  if (!sheetConsult) { alert('Feuille consultations introuvable.\nFeuilles disponibles : ' + sheetNames.join(', ')); return; }
+  const wsC = wb.Sheets[sheetConsult];
+  const consultRaw = XLSX.utils.sheet_to_json(wsC, { header: 1, defval: null });
+
+  // consultRaw[0] = headers
+  // cols: [1]=SOUSCRIPTEUR, [5]=INTERMEDIAIRE, [9]=BRANCHE, [14]=Sort, [15]=Prime définitive QP
+  const consultSous = {};    // key = norm(souscripteur)
+  const consultIntermed = {}; // key = norm(intermediaire)
+
+  for (let i = 1; i < consultRaw.length; i++) {
+    const r = consultRaw[i];
+    if (!r || r.every(v => v === null)) continue;
+    const sous = (r[1] || '').toString().trim();
+    const intermed = (r[5] || '').toString().trim();
+    const branche = (r[9] || '').toString().trim();
+    const sort = norm(r[14]);
+    const primeDef = safeParse(r[15]);
+
+    if (isAutoOrTransport(branche)) continue;
+    if (sort !== 'réalisée') continue;
+
+    const sk = norm(sous);
+    if (!consultSous[sk]) consultSous[sk] = { name: sous, prime: 0 };
+    consultSous[sk].prime += primeDef;
+
+    const ik = norm(intermed);
+    if (intermed) {
+      if (!consultIntermed[ik]) consultIntermed[ik] = { name: intermed, prime: 0 };
+      consultIntermed[ik].prime += primeDef;
+    }
+  }
+
+  // ── Sheet 2 : fiche des resiliations ──
+  if (!sheetResil) { alert('Feuille résiliations introuvable.\nFeuilles disponibles : ' + sheetNames.join(', ')); return; }
+  const wsR = wb.Sheets[sheetResil];
+  const resilRaw = XLSX.utils.sheet_to_json(wsR, { header: 1, defval: null });
+
+  // cols: [2]=SOUSCRIPTEUR, [4]=INTERMEDIAIRE, [7]=Branche, [15]=Prime acquise QP 2025 (NET)
+  //       [17]=QUOT PART, [19]=RESIL, [20]=TRANS.DE GESTION, [27]=Sort, [29]=Prime annuelle récup
+
+  const resilSous = {};
+  const resilIntermed = {};
+  const tgByClient2022 = {}; // key = norm(S/C CLIENT 2022), val = sum prime récup (Sort=Récupérée)
+
+  for (let i = 1; i < resilRaw.length; i++) {
+    const r = resilRaw[i];
+    if (!r || r.every(v => v === null || v === '')) continue;
+
+    const sous = (r[2] || '').toString().trim();
+    const intermed = (r[4] || '').toString().trim();
+    const branche = (r[7] || '').toString().trim();
+    if (!sous && !intermed) continue;
+    if (isAutoOrTransport(branche)) continue;
+
+    const quotPart = safeParse(r[17]); // percentage 0-100
+    const tgVal = r[20];
+    const sort = norm(r[27]);
+    const net2025 = safeParse(r[15]);  // NET = QP RMA
+    const primeRecup = safeParse(r[29]); // BRUT recovery
+
+    // AN retenus TG : grouped by S/C CLIENT 2022 (col 25), Sort=Récupérée
+    const scClient = (r[25] || '').toString().trim();
+    if (scClient && sort === 'récupérée') {
+      const ck = norm(scClient);
+      tgByClient2022[ck] = (tgByClient2022[ck] || 0) + primeRecup;
+    }
+
+    // Compute BRUT original premium
+    let brutOrig = net2025;
+    if (quotPart > 0 && quotPart <= 100) brutOrig = net2025 / (quotPart / 100);
+
+    // Compute NET recovery
+    let recupNet = primeRecup;
+    if (quotPart > 0 && quotPart <= 100) recupNet = primeRecup * (quotPart / 100);
+
+    const isRecup = sort === 'récupérée';
+    const isPerdue = sort === 'perdue';
+    const isTGSort = sort === 'transfert de gestion';
+    const tgFlag = hasTG(tgVal);
+
+    // ─ By Souscripteur ─
+    const sk = norm(sous);
+    if (sous && sk) {
+      if (!resilSous[sk]) resilSous[sk] = { name: sous, resil: 0, resilPrime: 0, tg: 0, recupNet: 0, recupBrut: 0, pertesNet: 0, pertesBrut: 0, totalNet: 0, totalBrut: 0 };
+      const s = resilSous[sk];
+      s.resil++;
+      if (!isRT(branche)) s.resilPrime += safeParse(r[13]);
+      if (tgFlag) s.tg++;
+      s.totalNet += net2025;
+      s.totalBrut += brutOrig;
+      if (isRecup) { s.recupNet += recupNet; s.recupBrut += primeRecup; }
+      if (isPerdue) { s.pertesNet += net2025; s.pertesBrut += brutOrig; }
+    }
+
+    // ─ By Intermédiaire ─
+    const ik = norm(intermed);
+    if (intermed && ik) {
+      if (!resilIntermed[ik]) resilIntermed[ik] = { name: intermed, resil: 0, resilPrime: 0, tg: 0, recupNet: 0, recupBrut: 0, pertesNet: 0, pertesBrut: 0, totalNet: 0, totalBrut: 0, tgRetenus: 0, tgPerdus: 0 };
+      const m = resilIntermed[ik];
+      m.resil++;
+      if (!isRT(branche)) m.resilPrime += safeParse(r[13]);
+      if (tgFlag) m.tg++;
+      m.totalNet += net2025;
+      m.totalBrut += brutOrig;
+      if (isRecup) { m.recupNet += recupNet; m.recupBrut += primeRecup; }
+      if (isPerdue) { m.pertesNet += net2025; m.pertesBrut += brutOrig; }
+      if (isTGSort) m.tgRetenus++;
+      if (tgFlag && isPerdue) m.tgPerdus++;
+    }
+  }
+
+  // ── Build bilan souscripteurs ──
+  bilanSous = [];
+  const allSous = new Set([...Object.keys(consultSous), ...Object.keys(resilSous)]);
+  for (const k of allSous) {
+    const c = consultSous[k] || { prime: 0 };
+    const r = resilSous[k] || {};
+    const name = r.name || c.name || k;
+    const anRetenus = c.prime;
+    const resil = r.resilPrime || 0;
+    const rNet = r.recupNet || 0;
+    const rBrut = r.recupBrut || 0;
+    const resultat = rNet - rBrut;
+    const pNet = r.pertesNet || 0;
+    const pBrut = r.pertesBrut || 0;
+    const totBrut = r.totalBrut || 0;
+    const totNet = r.totalNet || 0;
+    const pctB = totBrut > 0 ? (rBrut / totBrut * 100) : 0;
+    const pctN = totNet > 0 ? (rNet / totNet * 100) : 0;
+    bilanSous.push({ name, anRetenus, resil, rNet, rBrut, resultat, pNet, pBrut, totBrut, totNet, pctB, pctN });
+  }
+  bilanSous.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+
+  // ── Build bilan intermédiaires ──
+  bilanIntermed = [];
+  const allIntermed = new Set([...Object.keys(consultIntermed), ...Object.keys(resilIntermed)]);
+  for (const k of allIntermed) {
+    const c = consultIntermed[k] || { prime: 0 };
+    const r = resilIntermed[k] || {};
+    const name = r.name || c.name || k;
+    const anRetenus = c.prime;
+    const resil = r.resilPrime || 0;
+    const rNet = r.recupNet || 0;
+    const rBrut = r.recupBrut || 0;
+    const resultat = rNet - rBrut;
+    const pNet = r.pertesNet || 0;
+    const pBrut = r.pertesBrut || 0;
+    const totBrut = r.totalBrut || 0;
+    const totNet = r.totalNet || 0;
+    const pctB = totBrut > 0 ? (rBrut / totBrut * 100) : 0;
+    const pctN = totNet > 0 ? (rNet / totNet * 100) : 0;
+    const anRetenusTG = tgByClient2022[k] || 0;
+    bilanIntermed.push({ name, anRetenus, resil, rNet, rBrut, resultat, pNet, pBrut, totBrut, totNet, pctB, pctN, anRetenusTG });
+  }
+  bilanIntermed.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+
+  // ── Stats cards ──
+  const totalResil = bilanSous.reduce((s, r) => s + r.resil, 0);
+  const totalRetenus = bilanSous.reduce((s, r) => s + r.anRetenus, 0);
+  const totalRecupBrut = bilanSous.reduce((s, r) => s + r.rBrut, 0);
+  const totalPerdues = bilanSous.reduce((s, r) => s + r.pBrut, 0);
+  const totalBrut = bilanSous.reduce((s, r) => s + r.totBrut, 0);
+  const totalNet = bilanSous.reduce((s, r) => s + r.totNet, 0);
+  const totalRecupNet = bilanSous.reduce((s, r) => s + r.rNet, 0);
+
+  document.getElementById('statResil').textContent = fmtNum(totalResil);
+  document.getElementById('statRetenus').textContent = fmtNum(totalRetenus);
+  document.getElementById('statRecup').textContent = fmtNum(totalRecupBrut);
+  document.getElementById('statPerdues').textContent = fmtNum(totalPerdues);
+  document.getElementById('statPctBrut').textContent = totalBrut > 0 ? fmtPct(totalRecupBrut / totalBrut * 100) : '—';
+  document.getElementById('statPctNet').textContent = totalNet > 0 ? fmtPct(totalRecupNet / totalNet * 100) : '—';
+
+  document.getElementById('statsCards').style.display = '';
+  document.getElementById('appTabs').style.display = '';
+  document.getElementById('appControls').style.display = '';
+
+  sortCol = -1; sortDir = 1;
+  renderTable();
+}
+
+// ─── Render ───────────────────────────────────────────────────────────
+function renderTable() {
+  const data = currentTab === 'sous' ? bilanSous : bilanIntermed;
+  const query = (document.getElementById('searchBox').value || '').toLowerCase();
+  const filtered = query ? data.filter(r => r.name.toLowerCase().includes(query)) : data;
+
+  document.getElementById('rowCount').textContent = filtered.length + ' ligne(s)';
+
+  if (filtered.length === 0) {
+    document.getElementById('tableContainer').innerHTML = `<div class="empty"><div class="icon">🔍</div><h3>Aucun résultat</h3><p>Aucune donnée ne correspond à la recherche</p></div>`;
+    return;
+  }
+
+  const isSous = currentTab === 'sous';
+
+  // Column definitions
+  const cols = [
+    { label: isSous ? 'SOUSCRIPTEUR' : 'INTERMÉDIAIRE', key: 'name', type: 'text', cls: '' },
+    { label: 'AN Retenus\nHors auto et Transport', key: 'anRetenus', type: 'num', cls: 'green' },
+    { label: 'Résiliations Reçues\nHors Auto et Transport', key: 'resil', type: 'num', cls: '' },
+    { label: 'Prime de récup\nNET', key: 'rNet', type: 'num', cls: 'green' },
+    { label: 'Prime de récup\nBRUT', key: 'rBrut', type: 'num', cls: '' },
+    { label: 'Résultat\nNet − Brut', key: 'resultat', type: 'num', cls: '' },
+    { label: 'Pertes Nette perdues\nHors auto et Transport', key: 'pNet', type: 'num', cls: 'red' },
+    { label: 'Primes brutes perdues\nHors auto et Transport', key: 'pBrut', type: 'num', cls: 'red' },
+    { label: 'Brut Hors Auto\nEt Transport', key: 'totBrut', type: 'num', cls: 'yellow' },
+    { label: 'Net Hors Auto\nEt Transport', key: 'totNet', type: 'num', cls: 'yellow' },
+    { label: '% RECUP\nBRUT', key: 'pctB', type: 'pct', cls: 'yellow' },
+    { label: '% RECUP\nNET', key: 'pctN', type: 'pct', cls: 'yellow' },
+  ];
+  if (!isSous) {
+    cols.splice(2, 0, { label: 'AN retenus suite au\ntransfert de gestion', key: 'anRetenusTG', type: 'num', cls: 'yellow' });
+  }
+
+  // Totals
+  const totals = {};
+  cols.forEach(c => {
+    if (c.type === 'num' || c.type === 'int') totals[c.key] = filtered.reduce((s, r) => s + (r[c.key] || 0), 0);
+  });
+  totals.pctB = totals.totBrut > 0 ? (totals.rBrut / totals.totBrut * 100) : 0;
+  totals.pctN = totals.totNet > 0 ? (totals.rNet / totals.totNet * 100) : 0;
+  totals.name = 'TOTAL';
+
+  function cellVal(row, col) {
+    const v = row[col.key];
+    if (col.type === 'text') return `<span title="${v}">${v}</span>`;
+    if (col.type === 'int') return `<span class="num ${col.cls}">${v || 0}</span>`;
+    if (col.type === 'num') {
+      const cls = col.key === 'resultat' ? (v >= 0 ? 'green' : 'red') : col.cls;
+      return `<span class="num ${cls}">${fmtNum(v)}</span>`;
+    }
+    if (col.type === 'pct') {
+      const cls = v >= 50 ? 'green' : v >= 25 ? 'yellow-text' : 'red';
+      return `<span class="num ${cls}">${fmtPct(v)}</span>`;
+    }
+    return v;
+  }
+
+  let html = `<div class="table-wrap"><table><thead><tr>`;
+  cols.forEach((c, i) => {
+    const sortCls = sortCol === i ? (sortDir === 1 ? 'sort-asc' : 'sort-desc') : '';
+    const yellCls = ['yellow','Brut Hors','Net Hors','% RECUP'].some(x => c.label.includes(x.replace('\n','').replace('\\n',''))) ? 'yellow' : '';
+    html += `<th class="${sortCls} ${yellCls}" onclick="doSort(${i})" title="${c.label.replace(/\n/g,' ')}">${c.label.replace(/\n/g,'<br>')}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  filtered.forEach(row => {
+    html += '<tr>';
+    cols.forEach(c => { html += `<td>${cellVal(row, c)}</td>`; });
+    html += '</tr>';
+  });
+
+  // Totals row
+  html += '<tr class="totals">';
+  cols.forEach(c => { html += `<td>${cellVal(totals, c)}</td>`; });
+  html += '</tr>';
+
+  html += `</tbody></table></div>`;
+  document.getElementById('tableContainer').innerHTML = html;
+}
+
+// ─── Sort ─────────────────────────────────────────────────────────────
+function doSort(colIdx) {
+  const data = currentTab === 'sous' ? bilanSous : bilanIntermed;
+  const cols = ['name','anRetenus','resil','tg','rNet','rBrut','resultat','pNet','pBrut','totBrut','totNet','pctB','pctN'];
+  if (currentTab !== 'sous') cols.push('tgR','tgP');
+  const key = cols[colIdx];
+  if (sortCol === colIdx) sortDir *= -1; else { sortCol = colIdx; sortDir = 1; }
+  data.sort((a, b) => {
+    const va = a[key], vb = b[key];
+    if (typeof va === 'string') return va.localeCompare(vb, 'fr') * sortDir;
+    return ((va || 0) - (vb || 0)) * sortDir;
+  });
+  renderTable();
+}
+
+// ─── Tab switch ───────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('searchBox').value = '';
+  sortCol = -1; sortDir = 1;
+  renderTable();
+}
+
+// ─── Filter ───────────────────────────────────────────────────────────
+function filterTable() { renderTable(); }
+
+// ─── Export Excel ─────────────────────────────────────────────────────
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+
+  function buildSheet(data, isSous) {
+    const headers = [
+      isSous ? 'SOUSCRIPTEUR' : 'INTERMÉDIAIRE',
+      'AN Retenus Hors auto et Transport',
+      'Résiliations Reçues Hors Auto et Transport',
+      'TRANSFERT DE GESTION',
+      'Prime de récup NET',
+      'Prime de récup BRUT',
+      'Résultat Prime de récup Net - Prime de récup Brut',
+      'Pertes Nette perdues Hors auto et Transport',
+      'Primes brutes perdues Hors auto et Transport',
+      'Brut Hors Auto Et Transport',
+      'Net Hors Auto Et Transport',
+      '% RECUP BRUT',
+      '% RECUP NET',
+    ];
+    if (!isSous) {
+      headers.push('AN retenus suite au transfert de gestion');
+      headers.push('AN perdus suite au transfert de gestion');
+    }
+    const rows = [headers];
+    data.forEach(r => {
+      const row = [r.name, r.anRetenus, r.resil, r.tg, r.rNet, r.rBrut, r.resultat, r.pNet, r.pBrut, r.totBrut, r.totNet, r.pctB / 100, r.pctN / 100];
+      if (!isSous) { row.push(r.tgR); row.push(r.tgP); }
+      rows.push(row);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // Format % columns
+    const pctCols = isSous ? [11, 12] : [11, 12];
+    pctCols.forEach(ci => {
+      for (let ri = 1; ri < rows.length; ri++) {
+        const addr = XLSX.utils.encode_cell({ r: ri, c: ci });
+        if (ws[addr]) ws[addr].z = '0.0%';
+      }
+    });
+    ws['!cols'] = headers.map((h, i) => ({ wch: i === 0 ? 28 : 20 }));
+    return ws;
+  }
+
+  XLSX.utils.book_append_sheet(wb, buildSheet(bilanSous, true), 'Bilan Souscripteurs');
+  XLSX.utils.book_append_sheet(wb, buildSheet(bilanIntermed, false), 'Bilan Intermédiaires');
+  XLSX.writeFile(wb, 'Bilan_Renouvellement_2026.xlsx');
+}
+</script>
+</body>
+</html>

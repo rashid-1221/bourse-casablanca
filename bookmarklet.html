@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Bookmarklet — Importer depuis X</title>
+<style>
+    body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; max-width: 720px; margin: 40px auto; padding: 20px; }
+    h1 { color: #58a6ff; margin-bottom: 6px; }
+    .subtitle { color: #8b949e; margin-bottom: 28px; }
+    .step { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 18px 22px; margin-bottom: 16px; }
+    .step h3 { margin: 0 0 10px; color: #3fb950; font-size: 0.95em; }
+    .step p { margin: 0; color: #8b949e; font-size: 0.88em; line-height: 1.6; }
+    .bookmarklet-btn {
+        display: inline-block; padding: 14px 24px; background: #1f6feb; color: #fff;
+        border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 1.05em;
+        border: 2px solid #388bfd; cursor: grab; margin: 12px 0;
+        box-shadow: 0 4px 16px rgba(31,111,235,0.4); transition: transform .15s;
+    }
+    .bookmarklet-btn:hover { transform: translateY(-2px); }
+    .code-box {
+        background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+        padding: 14px; font-family: 'Courier New', monospace; font-size: 0.72em;
+        color: #8b949e; word-break: break-all; line-height: 1.5; max-height: 120px;
+        overflow-y: auto; margin-top: 10px;
+    }
+    .copy-btn { background: #21262d; border: 1px solid #30363d; color: #58a6ff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82em; margin-top: 8px; }
+    .tip { background: #1c2128; border-left: 3px solid #d29922; padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 0.85em; color: #d29922; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<h1>📌 Bookmarklet — Importer depuis X</h1>
+<p class="subtitle">Cliquez depuis x.com pour capturer les tweets de votre fil "Pour vous" et les envoyer dans votre site.</p>
+
+<div class="step">
+    <h3>Étape 1 — Glissez ce bouton dans votre barre de favoris Chrome</h3>
+    <p>Faites glisser le bouton ci-dessous vers votre barre de favoris, ou cliquez-droit → "Ajouter aux favoris".</p>
+    <br>
+    <a class="bookmarklet-btn" id="the-bookmarklet" href="#">📌 Importer depuis X</a>
+    <br>
+    <p style="font-size:0.82em;color:#8b949e;margin-top:8px;">☝️ Glissez ce bouton vers votre barre de favoris (Ctrl+Maj+B pour l'afficher)</p>
+</div>
+
+<div class="step">
+    <h3>Étape 2 — Utilisation</h3>
+    <p>
+        1. Ouvrez <strong>x.com</strong> dans Chrome (connecté à votre compte)<br>
+        2. Allez sur <strong>"Pour vous"</strong> et faites défiler un peu<br>
+        3. Cliquez sur le favori <strong>"📌 Importer depuis X"</strong><br>
+        4. Une fenêtre liste les tweets détectés — les importants sont en haut (⭐)<br>
+        5. Cochez ceux qui vous intéressent → <strong>"💾 Enregistrer"</strong>
+    </p>
+</div>
+
+<div class="step">
+    <h3>Mots-clés détectés (mis en évidence ⭐)</h3>
+    <p>Iran · Hormuz · Guerre · Nucléaire · Ukraine · Russie · Taiwan · Trump · Tarifs · Sanctions · FED · Powell · Taux · Inflation · Pétrole · OPEC · Brent · WTI · Bitcoin · Crypto · Bourse · NASDAQ · S&amp;P · Or</p>
+</div>
+
+<div class="step">
+    <h3>Code manuel (si glisser-déposer ne fonctionne pas)</h3>
+    <p>Créez un favori manuellement et collez ce code comme URL :</p>
+    <div class="code-box" id="code-display">Génération…</div>
+    <button class="copy-btn" onclick="copyCode()">📋 Copier le code</button>
+</div>
+
+<div class="tip">
+    💡 <strong>Conseil :</strong> Utilisez-le matin et en fin d'après-midi depuis x.com. Vous contrôlez ce qui est importé.
+</div>
+
+<script>
+// ── Code du bookmarklet ────────────────────────────────────────────────────
+const BOOKMARKLET_CODE = `javascript:(function(){
+var SITE='http://localhost:8080/bourse%20de%20casablanca/Claude/api/tweets-curated.php';
+
+/* Vérifier qu'on est sur x.com ou twitter.com */
+if(!location.hostname.match(/^(x|twitter)\\.com$/)){
+  alert('⚠️ Ce bookmarklet doit être utilisé sur x.com\\nAllez sur x.com et réessayez.');
+  return;
+}
+
+/* Mots-clés importants */
+var KW=/iran|guerre|trump|tarif|tarifaire|sanction|fed|taux d.int|inflation|pétrole|petrole|opec|brent|wti|bitcoin|crypto|ethereum|ukraine|russie|chine|taiwan|hormuz|nucléaire|nucleaire|récession|recession|bourse|nasdaq|s&p|dow jones|cac 40|gold|\\bor\\b|powell|banque centrale|déficit|dette/i;
+
+function score(t){var m=t.match(KW);return m?m.length:0;}
+function getCat(t){
+  if(/iran|hormuz|guerre|nucl|ukraine|russie|taiwan/i.test(t))return'geopolitique';
+  if(/trump|tarif|sanction/i.test(t))return'trump';
+  if(/fed|powell|taux|inflation|banque.centr/i.test(t))return'fed';
+  if(/pétrole|petrole|opec|brent|wti/i.test(t))return'petrole';
+  if(/bitcoin|crypto|ethereum/i.test(t))return'crypto';
+  return'autre';
+}
+
+/* Extraction tweets — plusieurs sélecteurs pour robustesse */
+var items=[];
+var seen=new Set();
+
+/* Méthode 1 : articles tweet standard */
+var arts=document.querySelectorAll('article[data-testid="tweet"],article[role="article"]');
+arts.forEach(function(art){
+  var tEl=art.querySelector('[data-testid="tweetText"],[lang]');
+  var aEl=art.querySelector('[data-testid="User-Name"],a[role="link"][href*="/"] span');
+  var lEl=art.querySelector('a[href*="/status/"]');
+  if(!tEl)return;
+  var text=tEl.innerText.trim();
+  if(!text||text.length<20)return;
+  if(seen.has(text.substring(0,60)))return;
+  seen.add(text.substring(0,60));
+  var author='';
+  if(aEl){var parts=aEl.innerText.split('\\n');author=parts[0].trim();}
+  var url='';
+  if(lEl){var h=lEl.getAttribute('href');url=h.startsWith('http')?h:'https://x.com'+h;}
+  var sc=score(text);
+  items.push({text:text,source:author,url:url,score:sc,category:getCat(text)});
+});
+
+/* Méthode 2 : fallback div avec data-testid tweetText */
+if(items.length===0){
+  document.querySelectorAll('[data-testid="tweetText"]').forEach(function(el){
+    var text=el.innerText.trim();
+    if(!text||text.length<20)return;
+    if(seen.has(text.substring(0,60)))return;
+    seen.add(text.substring(0,60));
+    var art=el.closest('article,div[data-testid]');
+    var lEl=art?art.querySelector('a[href*="/status/"]'):null;
+    var url=lEl?'https://x.com'+lEl.getAttribute('href'):'';
+    var sc=score(text);
+    items.push({text:text,source:'@X',url:url,score:sc,category:getCat(text)});
+  });
+}
+
+if(items.length===0){
+  alert('❌ Aucun tweet trouvé dans la page.\\n\\nVérifiez :\\n• Être sur x.com/home (Pour vous)\\n• Que la page est bien chargée\\n• Faites défiler et réessayez');
+  return;
+}
+
+/* Trier : importants (score>0) en tête, puis les autres */
+items.sort(function(a,b){return b.score-a.score;});
+
+/* ── Interface de sélection ── */
+var ov=document.createElement('div');
+ov.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;font-family:-apple-system,system-ui,sans-serif;';
+
+var card=document.createElement('div');
+card.style.cssText='background:#161b22;border:1px solid #30363d;border-radius:14px;width:min(640px,96vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,0.7);';
+
+var imp=items.filter(function(x){return x.score>0;}).length;
+card.innerHTML=
+  '<div style="padding:16px 20px;border-bottom:1px solid #30363d;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">'+
+    '<div>'+
+      '<span style="font-weight:800;color:#e6edf3;font-size:1em;">📌 Tweets trouvés : '+items.length+'</span>'+
+      (imp>0?'<span style="margin-left:10px;background:#2a1508;color:#f0883e;font-size:0.72em;padding:2px 8px;border-radius:10px;">⭐ '+imp+' important'+(imp>1?'s':'')+'</span>':'')+'<br>'+
+      '<span style="font-size:0.75em;color:#8b949e;">Les ⭐ contiennent des mots-clés financiers/géopolitiques</span>'+
+    '</div>'+
+    '<button id="bm-close" style="background:none;border:none;color:#8b949e;cursor:pointer;font-size:1.4em;padding:4px 8px;line-height:1;">✕</button>'+
+  '</div>'+
+  '<div style="padding:8px 10px;border-bottom:1px solid #21262d;display:flex;gap:8px;flex-shrink:0;">'+
+    '<button id="bm-all" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:0.8em;">✅ Tout cocher</button>'+
+    '<button id="bm-imp" style="background:#21262d;border:1px solid #30363d;color:#f0883e;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:0.8em;">⭐ Importants seulement</button>'+
+    '<button id="bm-none" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:0.8em;">☐ Tout décocher</button>'+
+  '</div>'+
+  '<div id="bm-list" style="overflow-y:auto;flex:1;padding:10px 12px;"></div>'+
+  '<div style="padding:14px 20px;border-top:1px solid #30363d;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;">'+
+    '<button id="bm-cancel" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:0.88em;">Annuler</button>'+
+    '<button id="bm-save" style="background:#1f6feb;border:none;color:#fff;padding:9px 22px;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.88em;">💾 Enregistrer la sélection</button>'+
+  '</div>';
+
+ov.appendChild(card);
+document.body.appendChild(ov);
+
+var list=card.querySelector('#bm-list');
+var cats={geopolitique:'🌍',trump:'🇺🇸',fed:'🏦',petrole:'🛢️',crypto:'₿',autre:'📌'};
+var catColors={geopolitique:'#f85149',trump:'#d29922',fed:'#58a6ff',petrole:'#f0883e',crypto:'#a371f7',autre:'#8b949e'};
+
+items.forEach(function(it,i){
+  var isImp=it.score>0;
+  var row=document.createElement('label');
+  row.style.cssText='display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:8px;cursor:pointer;margin-bottom:6px;border:1px solid '+(isImp?'#2a1508':'#21262d')+';background:'+(isImp?'rgba(240,136,62,0.04)':'transparent')+';';
+  row.innerHTML=
+    '<input type="checkbox" '+(isImp?'checked':'')+' data-i="'+i+'" style="margin-top:4px;flex-shrink:0;width:15px;height:15px;cursor:pointer;">'+
+    '<div style="flex:1;min-width:0;">'+
+      (isImp?'<span style="font-size:0.7em;background:#2a1508;color:#f0883e;padding:1px 7px;border-radius:8px;margin-bottom:5px;display:inline-block;">⭐ Important</span><br>':'')+
+      '<div style="font-size:0.86em;color:#e6edf3;line-height:1.55;word-break:break-word;">'+it.text.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,300)+(it.text.length>300?'…':'')+'</div>'+
+      '<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'+
+        (it.source?'<span style="font-size:0.73em;color:#58a6ff;font-weight:600;">'+it.source.replace(/</g,'&lt;')+'</span>':'')+
+        '<span style="font-size:0.7em;background:#21262d;color:'+catColors[it.category]+';padding:2px 8px;border-radius:10px;">'+cats[it.category]+' '+it.category+'</span>'+
+        (it.url?'<a href="'+it.url+'" target="_blank" style="font-size:0.7em;color:#8b949e;text-decoration:none;">🔗 voir</a>':'')+
+      '</div>'+
+    '</div>';
+  list.appendChild(row);
+});
+
+function close(){if(ov.parentNode)document.body.removeChild(ov);}
+card.querySelector('#bm-close').onclick=close;
+card.querySelector('#bm-cancel').onclick=close;
+card.querySelector('#bm-all').onclick=function(){card.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=true;});};
+card.querySelector('#bm-none').onclick=function(){card.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=false;});};
+card.querySelector('#bm-imp').onclick=function(){card.querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=!!items[parseInt(c.dataset.i)]&&items[parseInt(c.dataset.i)].score>0;});};
+ov.addEventListener('click',function(e){if(e.target===ov)close();});
+
+card.querySelector('#bm-save').onclick=async function(){
+  var sel=Array.from(card.querySelectorAll('input[type=checkbox]:checked')).map(function(cb){return items[parseInt(cb.dataset.i)];});
+  if(!sel.length){alert('Aucun tweet sélectionné.');return;}
+  var btn=card.querySelector('#bm-save');
+  btn.textContent='⏳ Enregistrement…';btn.disabled=true;
+  var ok=0,fail=0;
+  for(var j=0;j<sel.length;j++){
+    try{
+      var r=await fetch(SITE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sel[j])});
+      var d=await r.json();
+      if(d.success)ok++;else fail++;
+    }catch(e){fail++;}
+  }
+  btn.textContent='✅ '+ok+' enregistré'+(ok>1?'s':'')+(fail?' ('+fail+' erreur'+(fail>1?'s':'')+')':'')+'!';
+  setTimeout(close,2000);
+};
+})();`;
+
+// Mettre le code dans le bouton bookmarklet
+const btn = document.getElementById('the-bookmarklet');
+btn.setAttribute('href', BOOKMARKLET_CODE.replace(/\n\s*/g, ''));
+
+// Afficher dans la boîte de code
+document.getElementById('code-display').textContent = BOOKMARKLET_CODE.replace(/\n\s*/g, '');
+
+function copyCode() {
+    navigator.clipboard.writeText(BOOKMARKLET_CODE.replace(/\n\s*/g, '')).then(() => {
+        const b = document.querySelector('.copy-btn');
+        b.textContent = '✅ Copié !';
+        setTimeout(() => b.textContent = '📋 Copier le code', 2000);
+    });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snapshot Midi — 22/05/2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.5; }
+  .header { background: #161b22; border-bottom: 1px solid #30363d; padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #f0f6fc; letter-spacing: 0.5px; }
+  .header .subtitle { font-size: 13px; color: #8b949e; margin-top: 4px; }
+  .header .badge { background: #21262d; border: 1px solid #30363d; border-radius: 20px; padding: 6px 14px; font-size: 12px; color: #8b949e; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px 32px; }
+  
+  /* KPIs */
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px; }
+  .kpi { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; text-align: center; }
+  .kpi-label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .kpi-value { font-size: 22px; font-weight: 700; color: #f0f6fc; }
+  .kpi-value.green { color: #3fb950; }
+  .kpi-value.red { color: #f85149; }
+  .kpi-value.neutral { color: #8b949e; }
+  
+  /* Section titles */
+  .section-title { font-size: 15px; font-weight: 600; color: #f0f6fc; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ""; display: inline-block; width: 4px; height: 16px; border-radius: 2px; background: #1f6feb; }
+  
+  /* Cards */
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 32px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px; transition: border-color 0.2s; }
+  .card.green { border-left: 3px solid #3fb950; }
+  .card.red { border-left: 3px solid #f85149; }
+  .card.neutral { border-left: 3px solid #8b949e; }
+  .card-symbol { font-size: 16px; font-weight: 700; color: #f0f6fc; }
+  .card-name { font-size: 11px; color: #8b949e; margin-top: 2px; margin-bottom: 10px; }
+  .card-profit { font-size: 15px; font-weight: 700; }
+  .card-profit.green { color: #3fb950; }
+  .card-profit.red { color: #f85149; }
+  .card-profit.neutral { color: #8b949e; }
+  .card-perf { font-size: 12px; margin-top: 3px; }
+  .card-perf.green { color: #3fb950; }
+  .card-perf.red { color: #f85149; }
+  .card-perf.neutral { color: #8b949e; }
+  .card-sub { font-size: 10px; color: #6e7681; margin-top: 8px; }
+  
+  /* Table */
+  .table-wrap { overflow-x: auto; background: #161b22; border: 1px solid #30363d; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: #21262d; padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; border-bottom: 1px solid #30363d; }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid #21262d; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  .row-green td { background: rgba(63, 185, 80, 0.04); }
+  .row-red td { background: rgba(248, 81, 73, 0.04); }
+  .row-neutral td { }
+  .green { color: #3fb950; }
+  .red { color: #f85149; }
+  .neutral { color: #8b949e; }
+  
+  /* Footer */
+  .footer { text-align: center; padding: 24px 32px; color: #6e7681; font-size: 11px; border-top: 1px solid #21262d; margin-top: 32px; }
+  .stats-bar { display: flex; gap: 8px; margin-bottom: 32px; }
+  .stat-pill { background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 6px 14px; font-size: 12px; }
+  .stat-pill .val { font-weight: 700; margin-left: 4px; }
+  .val.green { color: #3fb950; } .val.red { color: #f85149; } .val.neutral { color: #8b949e; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📊 Portefeuille — Bourse de Casablanca</h1>
+    <div class="subtitle">Snapshot Midi — 22/05/2026 à 12:00</div>
+  </div>
+  <div class="badge">🕛 Généré automatiquement</div>
+</div>
+
+<div class="container">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Total Investi</div>
+      <div class="kpi-value">155,315</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:4px;">MAD</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Valeur Actuelle</div>
+      <div class="kpi-value">132,557</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:4px;">MAD</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Profit Net</div>
+      <div class="kpi-value red">-24 118.19 MAD</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Performance</div>
+      <div class="kpi-value red">-15.53%</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Taux de Réussite</div>
+      <div class="kpi-value red">14.3%</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:4px;">4G / 24P / 0N</div>
+    </div>
+  </div>
+
+  <!-- Stats pills -->
+  <div class="stats-bar">
+    <div class="stat-pill">Transactions totales <span class="val neutral">28</span></div>
+    <div class="stat-pill">Titres <span class="val neutral">14</span></div>
+    <div class="stat-pill">Gagnantes <span class="val green">4</span></div>
+    <div class="stat-pill">Perdantes <span class="val red">24</span></div>
+    <div class="stat-pill">Commissions achat+vente <span class="val neutral">2,835 MAD</span></div>
+    <div class="stat-pill">Taxes retenues <span class="val neutral">48.35 MAD</span></div>
+  </div>
+
+  <!-- Cards par symbole -->
+  <div class="section-title">Titres consolidés (14 valeurs)</div>
+  <div class="cards-grid">
+
+    <div class="card green">
+        <div class="card-symbol">SOD</div>
+        <div class="card-name">SODEP</div>
+        <div class="card-profit green">▲ +82.94 MAD</div>
+        <div class="card-perf green">+1.83%</div>
+        <div class="card-sub">Investi : 4,537 MAD &nbsp;|&nbsp; Valeur : 4,681 MAD</div>
+    </div>
+    <div class="card green">
+        <div class="card-symbol">SOT</div>
+        <div class="card-name">Sothema</div>
+        <div class="card-profit green">▲ +60.60 MAD</div>
+        <div class="card-perf green">+1.29%</div>
+        <div class="card-sub">Investi : 4,696 MAD &nbsp;|&nbsp; Valeur : 4,815 MAD</div>
+    </div>
+    <div class="card green">
+        <div class="card-symbol">RIS</div>
+        <div class="card-name">Risma</div>
+        <div class="card-profit green">▲ +25.25 MAD</div>
+        <div class="card-perf green">+0.83%</div>
+        <div class="card-sub">Investi : 3,030 MAD &nbsp;|&nbsp; Valeur : 3,090 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">DHO</div>
+        <div class="card-name">Delta Holding</div>
+        <div class="card-profit red">▼ -48.79 MAD</div>
+        <div class="card-perf red">-1.96%</div>
+        <div class="card-sub">Investi : 2,488 MAD &nbsp;|&nbsp; Valeur : 2,464 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">GTM</div>
+        <div class="card-name">SGTM</div>
+        <div class="card-profit red">▼ -80.37 MAD</div>
+        <div class="card-perf red">-1.59%</div>
+        <div class="card-sub">Investi : 5,054 MAD &nbsp;|&nbsp; Valeur : 5,023 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">ADI</div>
+        <div class="card-name">Alliances</div>
+        <div class="card-profit red">▼ -227.52 MAD</div>
+        <div class="card-perf red">-5.07%</div>
+        <div class="card-sub">Investi : 4,484 MAD &nbsp;|&nbsp; Valeur : 4,299 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">COL</div>
+        <div class="card-name">Colorado</div>
+        <div class="card-profit red">▼ -709.44 MAD</div>
+        <div class="card-perf red">-4.09%</div>
+        <div class="card-sub">Investi : 17,358 MAD &nbsp;|&nbsp; Valeur : 16,816 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">CSR</div>
+        <div class="card-name">Cosumar</div>
+        <div class="card-profit red">▼ -1 074.00 MAD</div>
+        <div class="card-perf red">-8.29%</div>
+        <div class="card-sub">Investi : 12,963 MAD &nbsp;|&nbsp; Valeur : 12,027 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">IAM</div>
+        <div class="card-name">Maroc Telecom</div>
+        <div class="card-profit red">▼ -2 700.37 MAD</div>
+        <div class="card-perf red">-20.77%</div>
+        <div class="card-sub">Investi : 13,002 MAD &nbsp;|&nbsp; Valeur : 10,405 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">NKL</div>
+        <div class="card-name">Ennakl</div>
+        <div class="card-profit red">▼ -2 812.54 MAD</div>
+        <div class="card-perf red">-13.97%</div>
+        <div class="card-sub">Investi : 20,132 MAD &nbsp;|&nbsp; Valeur : 17,493 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">ADH</div>
+        <div class="card-name">Addoha</div>
+        <div class="card-profit red">▼ -3 035.51 MAD</div>
+        <div class="card-perf red">-29.99%</div>
+        <div class="card-sub">Investi : 10,123 MAD &nbsp;|&nbsp; Valeur : 7,159 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">SNA</div>
+        <div class="card-name">SNA</div>
+        <div class="card-profit red">▼ -3 601.56 MAD</div>
+        <div class="card-perf red">-26.93%</div>
+        <div class="card-sub">Investi : 13,371 MAD &nbsp;|&nbsp; Valeur : 9,868 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">RDS</div>
+        <div class="card-name">Résidences Dar Saada</div>
+        <div class="card-profit red">▼ -4 546.62 MAD</div>
+        <div class="card-perf red">-18.04%</div>
+        <div class="card-sub">Investi : 25,199 MAD &nbsp;|&nbsp; Valeur : 20,858 MAD</div>
+    </div>
+    <div class="card red">
+        <div class="card-symbol">AKT</div>
+        <div class="card-name">Akdital</div>
+        <div class="card-profit red">▼ -5 450.28 MAD</div>
+        <div class="card-perf red">-28.87%</div>
+        <div class="card-sub">Investi : 18,876 MAD &nbsp;|&nbsp; Valeur : 13,560 MAD</div>
+    </div>
+  </div>
+
+  <!-- Tableau détaillé -->
+  <div class="section-title">Détail des transactions (28 lignes — triées par gain décroissant)</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symbole</th>
+          <th>Nom</th>
+          <th>Qté</th>
+          <th>Prix Achat</th>
+          <th>Cours Actuel</th>
+          <th>Investi TTC</th>
+          <th>Gain Net MAD</th>
+          <th>Perf %</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+
+    <tr class="row-green">
+        <td><strong>CSR</strong></td>
+        <td>Cosumar</td>
+        <td>16</td>
+        <td>179.50</td>
+        <td>190.90</td>
+        <td>2,900.43</td>
+        <td class="green"><strong>+105.17 MAD</strong></td>
+        <td class="green"><strong>+3.63%</strong></td>
+        <td>09/03/2026</td>
+    </tr>
+    <tr class="row-green">
+        <td><strong>SOD</strong></td>
+        <td>SODEP</td>
+        <td>6</td>
+        <td>748.80</td>
+        <td>780.20</td>
+        <td>4,537.28</td>
+        <td class="green"><strong>+82.94 MAD</strong></td>
+        <td class="green"><strong>+1.83%</strong></td>
+        <td>06/03/2026</td>
+    </tr>
+    <tr class="row-green">
+        <td><strong>SOT</strong></td>
+        <td>Sothema</td>
+        <td>3</td>
+        <td>1,550.00</td>
+        <td>1,605.00</td>
+        <td>4,696.03</td>
+        <td class="green"><strong>+60.60 MAD</strong></td>
+        <td class="green"><strong>+1.29%</strong></td>
+        <td>09/03/2026</td>
+    </tr>
+    <tr class="row-green">
+        <td><strong>RIS</strong></td>
+        <td>Risma</td>
+        <td>10</td>
+        <td>300.00</td>
+        <td>309.00</td>
+        <td>3,029.70</td>
+        <td class="green"><strong>+25.25 MAD</strong></td>
+        <td class="green"><strong>+0.83%</strong></td>
+        <td>06/02/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>SNA</strong></td>
+        <td>SNA</td>
+        <td>5</td>
+        <td>75.50</td>
+        <td>70.99</td>
+        <td>381.24</td>
+        <td class="red"><strong>-29.80 MAD</strong></td>
+        <td class="red"><strong>-7.82%</strong></td>
+        <td>10/03/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>SNA</strong></td>
+        <td>SNA</td>
+        <td>10</td>
+        <td>73.50</td>
+        <td>70.99</td>
+        <td>742.28</td>
+        <td class="red"><strong>-39.40 MAD</strong></td>
+        <td class="red"><strong>-5.31%</strong></td>
+        <td>11/03/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>DHO</strong></td>
+        <td>Delta Holding</td>
+        <td>44</td>
+        <td>56.00</td>
+        <td>56.00</td>
+        <td>2,488.39</td>
+        <td class="red"><strong>-48.79 MAD</strong></td>
+        <td class="red"><strong>-1.96%</strong></td>
+        <td>09/03/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>SNA</strong></td>
+        <td>SNA</td>
+        <td>10</td>
+        <td>75.49</td>
+        <td>70.99</td>
+        <td>762.37</td>
+        <td class="red"><strong>-59.50 MAD</strong></td>
+        <td class="red"><strong>-7.80%</strong></td>
+        <td>11/03/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>GTM</strong></td>
+        <td>SGTM</td>
+        <td>7</td>
+        <td>714.90</td>
+        <td>717.60</td>
+        <td>5,053.84</td>
+        <td class="red"><strong>-80.37 MAD</strong></td>
+        <td class="red"><strong>-1.59%</strong></td>
+        <td>06/03/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>SNA</strong></td>
+        <td>SNA</td>
+        <td>10</td>
+        <td>92.10</td>
+        <td>70.99</td>
+        <td>930.12</td>
+        <td class="red"><strong>-227.25 MAD</strong></td>
+        <td class="red"><strong>-24.43%</strong></td>
+        <td>06/02/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>ADI</strong></td>
+        <td>Alliances</td>
+        <td>10</td>
+        <td>444.00</td>
+        <td>429.90</td>
+        <td>4,483.96</td>
+        <td class="red"><strong>-227.52 MAD</strong></td>
+        <td class="red"><strong>-5.07%</strong></td>
+        <td>06/03/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>COL</strong></td>
+        <td>Colorado</td>
+        <td>84</td>
+        <td>86.20</td>
+        <td>84.50</td>
+        <td>7,312.48</td>
+        <td class="red"><strong>-284.75 MAD</strong></td>
+        <td class="red"><strong>-3.89%</strong></td>
+        <td>17/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>COL</strong></td>
+        <td>Colorado</td>
+        <td>115</td>
+        <td>86.50</td>
+        <td>84.50</td>
+        <td>10,045.98</td>
+        <td class="red"><strong>-424.68 MAD</strong></td>
+        <td class="red"><strong>-4.23%</strong></td>
+        <td>21/03/2026 17:04</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>AKT</strong></td>
+        <td>Akdital</td>
+        <td>1</td>
+        <td>1,530.00</td>
+        <td>1,130.00</td>
+        <td>1,545.15</td>
+        <td class="red"><strong>-426.33 MAD</strong></td>
+        <td class="red"><strong>-27.59%</strong></td>
+        <td>16/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>IAM</strong></td>
+        <td>Maroc Telecom</td>
+        <td>16</td>
+        <td>122.00</td>
+        <td>94.59</td>
+        <td>1,971.32</td>
+        <td class="red"><strong>-472.87 MAD</strong></td>
+        <td class="red"><strong>-23.99%</strong></td>
+        <td>17/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>AKT</strong></td>
+        <td>Akdital</td>
+        <td>1</td>
+        <td>1,597.00</td>
+        <td>1,130.00</td>
+        <td>1,612.81</td>
+        <td class="red"><strong>-494.00 MAD</strong></td>
+        <td class="red"><strong>-30.63%</strong></td>
+        <td>16/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>NKL</strong></td>
+        <td>Ennakl</td>
+        <td>188</td>
+        <td>53.00</td>
+        <td>49.00</td>
+        <td>10,062.64</td>
+        <td class="red"><strong>-941.84 MAD</strong></td>
+        <td class="red"><strong>-9.36%</strong></td>
+        <td>09/01/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>CSR</strong></td>
+        <td>Cosumar</td>
+        <td>47</td>
+        <td>212.00</td>
+        <td>190.90</td>
+        <td>10,062.64</td>
+        <td class="red"><strong>-1 179.17 MAD</strong></td>
+        <td class="red"><strong>-11.72%</strong></td>
+        <td>17/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>AKT</strong></td>
+        <td>Akdital</td>
+        <td>3</td>
+        <td>1,533.00</td>
+        <td>1,130.00</td>
+        <td>4,644.53</td>
+        <td class="red"><strong>-1 288.09 MAD</strong></td>
+        <td class="red"><strong>-27.73%</strong></td>
+        <td>16/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>AKT</strong></td>
+        <td>Akdital</td>
+        <td>3</td>
+        <td>1,535.00</td>
+        <td>1,130.00</td>
+        <td>4,650.59</td>
+        <td class="red"><strong>-1 294.15 MAD</strong></td>
+        <td class="red"><strong>-27.83%</strong></td>
+        <td>16/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>ADH</strong></td>
+        <td>Addoha</td>
+        <td>124</td>
+        <td>40.50</td>
+        <td>29.10</td>
+        <td>5,071.72</td>
+        <td class="red"><strong>-1 499.04 MAD</strong></td>
+        <td class="red"><strong>-29.56%</strong></td>
+        <td>17/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>ADH</strong></td>
+        <td>Addoha</td>
+        <td>122</td>
+        <td>41.00</td>
+        <td>29.10</td>
+        <td>5,051.52</td>
+        <td class="red"><strong>-1 536.47 MAD</strong></td>
+        <td class="red"><strong>-30.42%</strong></td>
+        <td>17/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>NKL</strong></td>
+        <td>Ennakl</td>
+        <td>169</td>
+        <td>59.00</td>
+        <td>49.00</td>
+        <td>10,069.71</td>
+        <td class="red"><strong>-1 870.69 MAD</strong></td>
+        <td class="red"><strong>-18.58%</strong></td>
+        <td>16/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>AKT</strong></td>
+        <td>Akdital</td>
+        <td>4</td>
+        <td>1,590.00</td>
+        <td>1,130.00</td>
+        <td>6,422.96</td>
+        <td class="red"><strong>-1 947.71 MAD</strong></td>
+        <td class="red"><strong>-30.32%</strong></td>
+        <td>16/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>RDS</strong></td>
+        <td>Résidences Dar Saada</td>
+        <td>55</td>
+        <td>181.00</td>
+        <td>144.85</td>
+        <td>10,053.55</td>
+        <td class="red"><strong>-2 165.68 MAD</strong></td>
+        <td class="red"><strong>-21.54%</strong></td>
+        <td>17/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>IAM</strong></td>
+        <td>Maroc Telecom</td>
+        <td>94</td>
+        <td>116.20</td>
+        <td>94.59</td>
+        <td>11,030.94</td>
+        <td class="red"><strong>-2 227.50 MAD</strong></td>
+        <td class="red"><strong>-20.19%</strong></td>
+        <td>17/11/2025</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>RDS</strong></td>
+        <td>Résidences Dar Saada</td>
+        <td>89</td>
+        <td>168.50</td>
+        <td>144.85</td>
+        <td>15,144.97</td>
+        <td class="red"><strong>-2 380.94 MAD</strong></td>
+        <td class="red"><strong>-15.72%</strong></td>
+        <td>09/01/2026</td>
+    </tr>
+    <tr class="row-red">
+        <td><strong>SNA</strong></td>
+        <td>SNA</td>
+        <td>104</td>
+        <td>100.50</td>
+        <td>70.99</td>
+        <td>10,555.47</td>
+        <td class="red"><strong>-3 245.61 MAD</strong></td>
+        <td class="red"><strong>-30.75%</strong></td>
+        <td>12/01/2026</td>
+    </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="footer">
+  Source : C:\MAMP\htdocs\bourse de casablanca\Claude\api\portfolio_data.json &nbsp;|&nbsp;
+  Snapshot généré le 22/05/2026 à 12:00 &nbsp;|&nbsp;
+  Calculs : commission 0,99% achat+vente · taxe 15% sur plus-values · cours non mis à jour en temps réel
+</div>
+
+</body>
+</html>

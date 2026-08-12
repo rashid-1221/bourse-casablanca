@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 Dashboard Portefeuille — Bourse de Casablanca</title>
+<style>
+  :root {
+    --bg:      #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border:  #30363d;
+    --text:    #e6edf3; --text2: #8b949e; --text3: #6e7681;
+    --green:   #3fb950; --green-bg: #0f2a1e; --green-border: #1e4a30;
+    --red:     #f85149; --red-bg:   #2a0f0f; --red-border:   #4a1e1e;
+    --yellow:  #d29922; --yellow-bg:#2a1e08;
+    --accent:  #58a6ff;
+    --radius:  10px;
+    --font: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--font); font-size: 14px; min-height: 100vh;
+    padding: 0 0 40px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(8px);
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-logo { font-size: 1.5em; }
+  .header-title { font-size: 1.15em; font-weight: 700; color: var(--text); }
+  .header-sub   { font-size: 0.78em; color: var(--text3); margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text); cursor: pointer;
+    font-size: 0.83em; font-weight: 600; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-ghost { background: transparent; }
+  .btn-ghost:hover { background: var(--bg3); color: var(--text); border-color: var(--border); }
+
+  /* ── Conteneur principal ── */
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+  /* ── Timestamp ── */
+  .snapshot-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 16px; margin-bottom: 20px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: 0.8em; color: var(--text3);
+  }
+  .snapshot-bar .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── Grille KPIs ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px;
+    position: relative; overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--kpi-color, var(--accent));
+  }
+  .kpi-icon  { font-size: 1.4em; margin-bottom: 8px; }
+  .kpi-label { font-size: 0.73em; color: var(--text3); font-weight: 600;
+               text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .kpi-value { font-size: 1.45em; font-weight: 800; color: var(--text);
+               font-variant-numeric: tabular-nums; }
+  .kpi-value.green  { color: var(--green); }
+  .kpi-value.red    { color: var(--red); }
+  .kpi-value.yellow { color: var(--yellow); }
+  .kpi-sub   { font-size: 0.75em; color: var(--text3); margin-top: 4px; }
+
+  /* ── Badges stats ── */
+  .stats-row {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .stat-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 0.8em; font-weight: 700; border: 1px solid;
+  }
+  .stat-pill.green  { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+  .stat-pill.red    { background: var(--red-bg);   color: var(--red);   border-color: var(--red-border); }
+  .stat-pill.yellow { background: var(--yellow-bg);color: var(--yellow);border-color: #4a3210; }
+  .stat-pill.blue   { background: #0d1b2f;         color: var(--accent);border-color: #1a3a5c; }
+
+  /* ── Section header ── */
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 12px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title { font-size: 0.95em; font-weight: 700; color: var(--text); }
+  .section-count {
+    font-size: 0.75em; padding: 2px 8px; border-radius: 12px;
+    background: var(--bg3); color: var(--text3); font-weight: 600;
+  }
+
+  /* ── Tableau des transactions ── */
+  .table-wrap {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; margin-bottom: 24px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--bg3); border-bottom: 1px solid var(--border); }
+  th {
+    padding: 10px 14px; text-align: left;
+    font-size: 0.72em; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  th.right { text-align: right; }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border);
+       font-size: 0.86em; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(88,166,255,0.04); }
+
+  /* Colonnes numériques */
+  .num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'Cascadia Code','Consolas',monospace; }
+
+  /* Badge symbole */
+  .sym-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 3px 9px; border-radius: 6px; font-size: 0.82em;
+    font-weight: 800; letter-spacing: 0.03em;
+    background: #1a2a3a; color: var(--accent); border: 1px solid #1e3a5a;
+    white-space: nowrap;
+  }
+
+  /* Gain/perte badge */
+  .gain-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 6px; font-size: 0.82em;
+    font-weight: 700; white-space: nowrap;
+  }
+  .gain-badge.win  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .gain-badge.loss { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border); }
+  .gain-badge.neu  { background: var(--bg3);      color: var(--text3); border: 1px solid var(--border); }
+
+  /* Barre de variation % */
+  .pct-bar-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .pct-bar {
+    width: 50px; height: 5px; border-radius: 3px;
+    background: var(--bg3); overflow: hidden; flex-shrink: 0;
+  }
+  .pct-bar-fill {
+    height: 100%; border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  /* ── Symboles consolidés ── */
+  .sym-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+    gap: 10px; margin-bottom: 24px;
+  }
+  .sym-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    border-left: 3px solid;
+    transition: transform 0.15s;
+  }
+  .sym-card:hover { transform: translateX(3px); }
+  .sym-card.win  { border-left-color: var(--green); }
+  .sym-card.loss { border-left-color: var(--red); }
+  .sym-card.neu  { border-left-color: var(--text3); }
+
+  .sym-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .sym-name { font-size: 0.78em; color: var(--text3); margin-top: 2px; }
+  .sym-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .sym-metric { display: flex; flex-direction: column; gap: 2px; }
+  .sym-metric-label { font-size: 0.68em; color: var(--text3); text-transform: uppercase; }
+  .sym-metric-value { font-size: 0.88em; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* ── Empty / loading ── */
+  .loading {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 60px; gap: 14px; color: var(--text3);
+  }
+  .spinner {
+    width: 32px; height: 32px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    th, td { padding: 8px 10px; }
+    .hide-mobile { display: none !important; }
+    .sym-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────── -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">📊</div>
+    <div>
+      <div class="header-title">Dashboard Portefeuille</div>
+      <div class="header-sub">Bourse de Casablanca · Analyse complète</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <a href="index.html" class="btn btn-ghost">← Retour au site</a>
+    <button class="btn" onclick="loadDashboard()">🔄 Actualiser</button>
+  </div>
+</div>
+
+<!-- ── CONTENU ─────────────────────────────────────────────────────────── -->
+<div class="container">
+
+  <!-- Timestamp -->
+  <div class="snapshot-bar" id="snapshot-bar" style="display:none;">
+    <div class="dot"></div>
+    <span id="snapshot-time">—</span>
+    <span style="color:var(--border);">·</span>
+    <span id="snapshot-count" style="color:var(--text2);"></span>
+  </div>
+
+  <!-- Zone principale -->
+  <div id="main-content">
+    <div class="loading"><div class="spinner"></div><span>Chargement du portefeuille…</span></div>
+  </div>
+
+</div>
+
+<script>
+const API = 'api/portfolio-dashboard.php';
+const FMT = n => n == null ? '—' : Number(n).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
+const FMT0 = n => n == null ? '—' : Number(n).toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0});
+const SIGN = n => n >= 0 ? '+' : '';
+
+// ── Chargement ─────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const mc = document.getElementById('main-content');
+  mc.innerHTML = '<div class="loading"><div class="spinner"></div><span>Actualisation…</span></div>';
+  try {
+    // Récupérer le token si disponible
+    let url = API + '?_=' + Date.now();
+    try {
+      const tok = localStorage.getItem('bvc_auth_token');
+      if (tok) url += '&token=' + encodeURIComponent(tok);
+    } catch(e){}
+
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error || 'Erreur API');
+    renderDashboard(d);
+  } catch(e) {
+    mc.innerHTML = `<div class="loading">⚠️ ${e.message}</div>`;
+  }
+}
+
+// ── Rendu complet ──────────────────────────────────────────────────────────
+function renderDashboard(d) {
+  const k = d.kpis;
+
+  // Timestamp bar
+  const sb = document.getElementById('snapshot-bar');
+  sb.style.display = 'flex';
+  document.getElementById('snapshot-time').textContent =
+    '📅 Données au ' + d.generatedAt;
+  document.getElementById('snapshot-count').textContent =
+    k.nbTransactions + ' transactions · ' + k.nbSymboles + ' titres';
+
+  // ── Construire le HTML complet ──────────────────────────────────────────
+  const profitClass = k.profitNet >= 0 ? 'green' : 'red';
+  const perfClass   = k.performance >= 0 ? 'green' : 'red';
+  const tauxClass   = k.tauxReussite >= 60 ? 'green' : (k.tauxReussite >= 40 ? 'yellow' : 'red');
+
+  // Variation vs investi
+  const variation = k.valeurActuelle - k.totalInvesti;
+  const varClass  = variation >= 0 ? 'green' : 'red';
+
+  let html = '';
+
+  // ── KPIs ─────────────────────────────────────────────────────────────────
+  html += `
+  <div class="kpi-grid">
+
+    <div class="kpi-card" style="--kpi-color:#58a6ff">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-label">Total Investi</div>
+      <div class="kpi-value">${FMT(k.totalInvesti)}</div>
+      <div class="kpi-sub">MAD (commissions incluses)</div>
+    </div>
+
+    <div class="kpi-card" style="--kpi-color:${variation>=0?'#3fb950':'#f85149'}">
+      <div class="kpi-icon">📈</div>
+      <div class="kpi-label">Valeur Actuelle</div>
+      <div class="kpi-value">${FMT(k.valeurActuelle)}</div>
+      <div class="kpi-sub" style="color:var(--${varClass});">
+        ${SIGN(variation)}${FMT(variation)} MAD vs investi
+      </div>
+    </div>
+
+    <div class="kpi-card" style="--kpi-color:${k.profitNet>=0?'#3fb950':'#f85149'}">
+      <div class="kpi-icon">${k.profitNet >= 0 ? '🟢' : '🔴'}</div>
+      <div class="kpi-label">Profit Net</div>
+      <div class="kpi-value ${profitClass}">${SIGN(k.profitNet)}${FMT(k.profitNet)}</div>
+      <div class="kpi-sub">MAD (après taxes & commissions)</div>
+    </div>
+
+    <div class="kpi-card" style="--kpi-color:${k.performance>=0?'#3fb950':'#f85149'}">
+      <div class="kpi-icon">🎯</div>
+      <div class="kpi-label">Performance</div>
+      <div class="kpi-value ${perfClass}">${SIGN(k.performance)}${FMT(k.performance)}%</div>
+      <div class="kpi-sub">Rendement global net</div>
+    </div>
+
+    <div class="kpi-card" style="--kpi-color:${tauxClass==='green'?'#3fb950':tauxClass==='yellow'?'#d29922':'#f85149'}">
+      <div class="kpi-icon">🏆</div>
+      <div class="kpi-label">Taux de Réussite</div>
+      <div class="kpi-value ${tauxClass}">${k.tauxReussite}%</div>
+      <div class="kpi-sub">${k.gagnantes} gagnantes sur ${k.nbTransactions}</div>
+    </div>
+
+    <div class="kpi-card" style="--kpi-color:#d29922">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-label">Portefeuille</div>
+      <div class="kpi-value">${k.nbSymboles}</div>
+      <div class="kpi-sub">titres · ${k.nbTransactions} lignes</div>
+    </div>
+
+  </div>`;
+
+  // ── Pills stats ───────────────────────────────────────────────────────────
+  html += `
+  <div class="stats-row">
+    <div class="stat-pill green">✅ ${k.gagnantes} Gagnante${k.gagnantes>1?'s':''}</div>
+    <div class="stat-pill red">❌ ${k.perdantes} Perdante${k.perdantes>1?'s':''}</div>
+    ${k.neutres > 0 ? `<div class="stat-pill yellow">⚪ ${k.neutres} Neutre${k.neutres>1?'s':''}</div>` : ''}
+    <div class="stat-pill blue">💼 ${k.nbSymboles} Titre${k.nbSymboles>1?'s':''}</div>
+  </div>`;
+
+  // ── Vue consolidée par titre ──────────────────────────────────────────────
+  html += `
+  <div class="section-header">
+    <div class="section-title">📦 Titres consolidés</div>
+    <div class="section-count">${d.symbols.length} titres</div>
+  </div>
+  <div class="sym-grid">`;
+
+  const maxAbsGain = Math.max(...d.symbols.map(s => Math.abs(s.gainNet)), 1);
+
+  d.symbols.forEach(s => {
+    const cls   = s.statut === 'gagnant' ? 'win' : s.statut === 'perdant' ? 'loss' : 'neu';
+    const color = s.statut === 'gagnant' ? '#3fb950' : s.statut === 'perdant' ? '#f85149' : '#6e7681';
+    const barW  = Math.min(100, Math.round(Math.abs(s.gainNet) / maxAbsGain * 100));
+
+    html += `
+    <div class="sym-card ${cls}">
+      <div class="sym-card-header">
+        <div>
+          <span class="sym-badge">${s.symbole}</span>
+          <div class="sym-name">${s.nom} · ${s.nbLignes} ligne${s.nbLignes>1?'s':''} · ${s.quantite} titres</div>
+        </div>
+        <div class="gain-badge ${cls}">${SIGN(s.gainNet)}${FMT(s.gainNet)} MAD</div>
+      </div>
+      <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;">
+          <div style="width:${barW}%;height:100%;background:${color};border-radius:2px;"></div>
+        </div>
+        <span style="font-size:0.8em;font-weight:700;color:${color};">${SIGN(s.gainPct)}${FMT(s.gainPct)}%</span>
+      </div>
+      <div class="sym-metrics">
+        <div class="sym-metric">
+          <div class="sym-metric-label">Investi</div>
+          <div class="sym-metric-value">${FMT(s.investi)} MAD</div>
+        </div>
+        <div class="sym-metric">
+          <div class="sym-metric-label">Valeur actuelle</div>
+          <div class="sym-metric-value">${FMT(s.valActuelle)} MAD</div>
+        </div>
+        <div class="sym-metric">
+          <div class="sym-metric-label">Prix moy. achat</div>
+          <div class="sym-metric-value">${FMT(s.prixMoyenAchat)}</div>
+        </div>
+        <div class="sym-metric">
+          <div class="sym-metric-label">Cours actuel</div>
+          <div class="sym-metric-value">${FMT(s.prixActuel)}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // ── Tableau détaillé par ligne ─────────────────────────────────────────────
+  html += `
+  <div class="section-header">
+    <div class="section-title">📄 Détail par ligne de transaction</div>
+    <div class="section-count">${d.lignes.length} lignes</div>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Titre</th>
+        <th class="right">Qté</th>
+        <th class="right">Prix achat</th>
+        <th class="right">Cours actuel</th>
+        <th class="right hide-mobile">Investi TTC</th>
+        <th class="right hide-mobile">Val. actuelle</th>
+        <th class="right">Gain net MAD</th>
+        <th class="right">Perf %</th>
+        <th class="hide-mobile">Date</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  d.lignes.forEach(l => {
+    const cls   = l.statut === 'gagnant' ? 'win' : l.statut === 'perdant' ? 'loss' : 'neu';
+    const color = l.statut === 'gagnant' ? '#3fb950' : l.statut === 'perdant' ? '#f85149' : '#6e7681';
+    const barW  = Math.min(100, Math.round(Math.abs(l.gainPct) / 30 * 100));  // 30% = full bar
+
+    html += `
+      <tr>
+        <td>
+          <span class="sym-badge">${l.symbole}</span>
+          <div style="font-size:0.75em;color:var(--text3);margin-top:3px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.nom}</div>
+        </td>
+        <td class="num">${l.quantite}</td>
+        <td class="num">${FMT(l.prixAchat)}</td>
+        <td class="num">${FMT(l.prixActuel)}</td>
+        <td class="num hide-mobile">${FMT(l.investi)}</td>
+        <td class="num hide-mobile">${FMT(l.valActuelle)}</td>
+        <td class="num">
+          <span class="gain-badge ${cls}">${SIGN(l.gainNet)}${FMT(l.gainNet)}</span>
+        </td>
+        <td>
+          <div class="pct-bar-wrap">
+            <div class="pct-bar">
+              <div class="pct-bar-fill" style="width:${barW}%;background:${color};"></div>
+            </div>
+            <span style="font-size:0.82em;font-weight:700;color:${color};min-width:52px;text-align:right;">
+              ${SIGN(l.gainPct)}${FMT(l.gainPct)}%
+            </span>
+          </div>
+        </td>
+        <td class="hide-mobile" style="font-size:0.78em;color:var(--text3);">${l.dateAjout || '—'}</td>
+      </tr>`;
+  });
+
+  // Ligne Total
+  const totalGain = d.lignes.reduce((s, l) => s + l.gainNet, 0);
+  const totalInv  = d.lignes.reduce((s, l) => s + l.investi, 0);
+  const totalVal  = d.lignes.reduce((s, l) => s + l.valActuelle, 0);
+  const totalPct  = totalInv > 0 ? (totalGain / totalInv) * 100 : 0;
+  const tClass    = totalGain >= 0 ? 'win' : 'loss';
+  const tColor    = totalGain >= 0 ? '#3fb950' : '#f85149';
+
+  html += `
+      <tr style="background:var(--bg3);font-weight:700;border-top:2px solid var(--border);">
+        <td colspan="3" style="font-size:0.85em;color:var(--text2);">TOTAL PORTEFEUILLE</td>
+        <td></td>
+        <td class="num hide-mobile">${FMT(totalInv)}</td>
+        <td class="num hide-mobile">${FMT(totalVal)}</td>
+        <td class="num">
+          <span class="gain-badge ${tClass}">${SIGN(totalGain)}${FMT(totalGain)}</span>
+        </td>
+        <td>
+          <span style="font-size:0.9em;font-weight:800;color:${tColor};">${SIGN(totalPct)}${FMT(totalPct)}%</span>
+        </td>
+        <td class="hide-mobile"></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>`;
+
+  // ── Pied de page ──────────────────────────────────────────────────────────
+  html += `
+  <div style="text-align:center;font-size:0.73em;color:var(--text3);padding-top:8px;">
+    Commission: 0,99% à l'achat et à la vente · Taxe sur plus-values: 15% ·
+    Données issues de <strong>portfolio_data.json</strong>
+  </div>`;
+
+  document.getElementById('main-content').innerHTML = html;
+}
+
+// Chargement automatique au démarrage
+loadDashboard();
+
+// Actualisation automatique toutes les 5 minutes si la page est visible
+setInterval(() => { if (!document.hidden) loadDashboard(); }, 5 * 60 * 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Sauvegardes locales et rapports PDF volumineux — trop lourds pour git
+/Sauvegarde/
+/Santé financiére/
+
+# Cache PHP / temp
+/api/cache/
+*.cache
+*.tmp
+*.log
+
+# Config locale sensible
+config.local.js
+.env
+api/email_config.json
+
+# Données personnelles de portefeuille (montants, positions réelles) — privé
+/api/portfolio_data.json
+/Mon portfeuille.csv
+/portefeuille_2026-03-25.csv
+/portefeuille_export.csv
+/portefeuille_export.json
+
+# Node modules si applicable
+node_modules/
+
+# Base SQLite locale — chaque appareil garde sa propre DB
+api/bourse.db
+
+# Script d'export à usage unique — ne pas commiter
+api/export-users.php
