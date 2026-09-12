@@ -595,13 +595,12 @@ class PortfolioManager {
         }
     }
 
+    // Bootstrap "portefeuille anonyme partagé" — utilisé tant que l'état de connexion
+    // Firebase n'est pas encore résolu (authManager.init() rechargera depuis Firestore
+    // via loadFromServer() une fois la session Firebase confirmée, si l'utilisateur est connecté).
     async _tryRestoreFromServer() {
-        const tok = localStorage.getItem('auth_token');
-        const url = tok
-            ? 'api/portfolio-sync.php?token=' + encodeURIComponent(tok)
-            : 'api/portfolio-sync.php';
         try {
-            const r = await fetch(url);
+            const r = await fetch('api/portfolio-sync.php');
             const d = await r.json();
             if (d.ok && Array.isArray(d.data) && d.data.length > 0) {
                 this.stocks = d.data.map(s => {
@@ -634,33 +633,44 @@ class PortfolioManager {
 
     save() {
         localStorage.setItem('portfolio_casa', JSON.stringify(this.stocks));
-        // Synchroniser avec le serveur (stocks + tags + historique ensemble)
-        const tok = localStorage.getItem('auth_token');
-        const url = tok
-            ? 'api/portfolio-sync.php?token=' + encodeURIComponent(tok)
-            : 'api/portfolio-sync.php';
         let history = [], historySym = {};
         try { history    = JSON.parse(localStorage.getItem('portfolio_history')     || '[]'); } catch(e) {}
         try { historySym = JSON.parse(localStorage.getItem('portfolio_history_sym') || '{}'); } catch(e) {}
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                data:       this.stocks,
-                tags:       this._loadTags(),
-                history:    history,
-                historySym: historySym,
-            })
-        }).catch(() => {});
+        const payload = {
+            data:       this.stocks,
+            tags:       this._loadTags(),
+            history:    history,
+            historySym: historySym,
+        };
+
+        const fbUser = firebase.auth().currentUser;
+        if (fbUser) {
+            // Compte connecté : portefeuille personnel dans Firestore (partagé PC/Android)
+            // Firestore refuse les instances de classe (Stock) → on les convertit en objets simples
+            firebase.firestore().collection('portfolios').doc(fbUser.uid).set({
+                ...payload,
+                data: payload.data.map(s => ({ ...s })),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true }).catch(() => {});
+        } else {
+            // Invité : portefeuille anonyme partagé (fichier local à cet hôte PHP)
+            fetch('api/portfolio-sync.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            }).catch(() => {});
+        }
     }
 
-    // Charger le portefeuille depuis le serveur (après connexion)
+    // Charger le portefeuille depuis Firestore (appelé par authManager après connexion)
     async loadFromServer() {
-        const tok = localStorage.getItem('auth_token');
-        if (!tok) return;
+        const fbUser = firebase.auth().currentUser;
+        if (!fbUser) return;
         try {
-            const r = await fetch('api/portfolio-sync.php?token=' + encodeURIComponent(tok));
-            const d = await r.json();
+            const doc = await firebase.firestore().collection('portfolios').doc(fbUser.uid).get();
+            const d = doc.exists
+                ? { ok: true, ...doc.data() }
+                : { ok: true, data: [], tags: {}, history: [], historySym: {} };
             if (d.ok && Array.isArray(d.data) && d.data.length > 0) {
                 let migrated = false;
                 this.stocks = d.data.map(s => {
@@ -6152,33 +6162,23 @@ async function initMarketsTicker() {
 }
 document.addEventListener('DOMContentLoaded', initMarketsTicker);
 
-// ── AUTH MANAGER ─────────────────────────────────────────────────────────
+// ── AUTH MANAGER (Firebase Auth) ────────────────────────────────────────────
 const authManager = {
     currentUser: null,
 
-    // Vérifier le token au chargement
-    async init() {
-        const tok = localStorage.getItem('auth_token');
-        if (!tok) { this._setGuest(); return; }
-        try {
-            const r = await fetch('api/auth.php?action=check&token=' + encodeURIComponent(tok));
-            const d = await r.json();
-            if (d.loggedIn) {
-                this._setUser(d.user);
-                localStorage.setItem('auth_user_cache', JSON.stringify(d.user));
-            } else {
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('auth_user_cache');
-                this._setGuest();
+    // Écoute l'état de connexion Firebase (persisté automatiquement par le SDK)
+    init() {
+        firebase.auth().onAuthStateChanged(async (fbUser) => {
+            if (!fbUser) { this._setGuest(); return; }
+            let profile = { id: fbUser.uid, prenom: '', nom: '', email: fbUser.email };
+            try {
+                const doc = await firebase.firestore().collection('users').doc(fbUser.uid).get();
+                if (doc.exists) profile = { ...profile, ...doc.data() };
+            } catch (e) {
+                console.warn('⚠️ Impossible de charger le profil Firestore', e);
             }
-        } catch(e) {
-            // Serveur indisponible : restaurer la session depuis le cache local
-            const cached = localStorage.getItem('auth_user_cache');
-            if (cached) {
-                try { this._setUser(JSON.parse(cached)); return; } catch(_) {}
-            }
-            this._setGuest();
-        }
+            this._setUser(profile);
+        });
     },
 
     // Ouvrir une modale (login | register | guard)
@@ -6229,22 +6229,33 @@ const authManager = {
 
         btn.disabled = true; btn.textContent = 'Connexion…';
         try {
-            const fd = new URLSearchParams();
-            fd.append('action', 'login');
-            fd.append('email', email);
-            fd.append('password', pass);
-            const r = await fetch('api/auth.php', { method: 'POST', body: fd });
-            const d = await r.json();
-            if (d.success) {
-                if (d.token) localStorage.setItem('auth_token', d.token);
-                localStorage.setItem('auth_user_cache', JSON.stringify(d.user));
-                this._setUser(d.user);
-                this.closeModal();
-            } else {
-                this._showErr('login', d.error || 'Erreur inconnue.');
-            }
-        } catch(e) { this._showErr('login', 'Erreur de connexion au serveur.'); }
+            await firebase.auth().signInWithEmailAndPassword(email, pass);
+            // onAuthStateChanged() prend le relais : charge le profil + le portefeuille
+            this.closeModal();
+        } catch(e) {
+            this._showErr('login', this._firebaseErrorMessage(e));
+        }
         btn.disabled = false; btn.textContent = 'Se connecter';
+    },
+
+    _firebaseErrorMessage(e) {
+        switch (e.code) {
+            case 'auth/invalid-email':
+            case 'auth/invalid-credential':
+            case 'auth/wrong-password':
+            case 'auth/user-not-found':
+                return 'Email ou mot de passe incorrect.';
+            case 'auth/email-already-in-use':
+                return 'Un compte existe déjà avec cet email.';
+            case 'auth/weak-password':
+                return 'Le mot de passe doit contenir au moins 6 caractères.';
+            case 'auth/too-many-requests':
+                return 'Trop de tentatives échouées. Réessayez dans quelques minutes.';
+            case 'auth/user-disabled':
+                return 'Ce compte a été désactivé.';
+            default:
+                return 'Erreur de connexion au serveur (' + (e.code || 'inconnue') + ').';
+        }
     },
 
     // Inscription
@@ -6265,33 +6276,23 @@ const authManager = {
 
         btn.disabled = true; btn.textContent = 'Création…';
         try {
-            const fd = new URLSearchParams();
-            fd.append('action',    'register');
-            fd.append('prenom',    prenom);
-            fd.append('nom',       nom);
-            fd.append('email',     email);
-            fd.append('password',  pass);
-            fd.append('password2', pass2);
-            const r = await fetch('api/auth.php', { method: 'POST', body: fd });
-            const d = await r.json();
-            if (d.success) {
-                if (d.token) localStorage.setItem('auth_token', d.token);
-                localStorage.setItem('auth_user_cache', JSON.stringify(d.user));
-                this._setUser(d.user);
-                this.closeModal();
-            } else {
-                this._showErr('register', d.error || 'Erreur inconnue.');
-            }
-        } catch(e) { this._showErr('register', 'Erreur de connexion au serveur.'); }
+            const cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
+            await cred.user.updateProfile({ displayName: `${prenom} ${nom}` });
+            await firebase.firestore().collection('users').doc(cred.user.uid).set({
+                prenom, nom, email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            // onAuthStateChanged() prend le relais : charge le profil + le portefeuille
+            this.closeModal();
+        } catch(e) {
+            this._showErr('register', this._firebaseErrorMessage(e));
+        }
         btn.disabled = false; btn.textContent = 'Créer mon compte';
     },
 
     // Déconnexion
     async logout() {
-        const tok = localStorage.getItem('auth_token');
-        if (tok) await fetch('api/auth.php?action=logout&token=' + encodeURIComponent(tok)).catch(()=>{});
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user_cache');
+        await firebase.auth().signOut().catch(()=>{});
         this._setGuest();
         // Si on est sur le portefeuille, revenir aux marchés
         if (document.getElementById('view-portefeuille')?.classList.contains('active')) {
@@ -6338,6 +6339,101 @@ const authManager = {
 };
 
 document.addEventListener('DOMContentLoaded', () => authManager.init());
+
+// ── SYNCHRO FIREBASE MANUELLE (push/pull explicite du portefeuille) ────────
+// Complète la sync automatique (silencieuse) de PortfolioManager.save()/loadFromServer() :
+// ce bouton sert à forcer, en un clic, le même portefeuille sur un autre appareil
+// (ex. envoyer depuis le PC, puis recevoir depuis le téléphone).
+function openFirebaseSyncModal() {
+    const overlay = document.getElementById('firebase-sync-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    updateFbSyncStatus();
+}
+
+function closeFirebaseSyncModal() {
+    const overlay = document.getElementById('firebase-sync-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function updateFbSyncStatus() {
+    const statusEl = document.getElementById('fbsync-status');
+    const lastEl   = document.getElementById('fbsync-lastsync');
+    const user     = firebase.auth().currentUser;
+    if (statusEl) {
+        statusEl.textContent = user
+            ? ('✅ Connecté : ' + user.email)
+            : '⚠️ Non connecté — connectez-vous d\'abord pour synchroniser.';
+    }
+    if (lastEl) {
+        const t = localStorage.getItem('bvc_fb_lastsync');
+        lastEl.textContent = t ? ('🕐 Dernier sync : ' + t) : '';
+    }
+}
+
+async function firebasePortfolioPush() {
+    const user = firebase.auth().currentUser;
+    if (!user) { portfolioManager.showNotification('❌ Connectez-vous d\'abord', 'error'); return; }
+    try {
+        let history = [], historySym = {};
+        try { history    = JSON.parse(localStorage.getItem('portfolio_history')     || '[]'); } catch(e) {}
+        try { historySym = JSON.parse(localStorage.getItem('portfolio_history_sym') || '{}'); } catch(e) {}
+        await firebase.firestore().collection('portfolios').doc(user.uid).set({
+            data:       portfolioManager.stocks.map(s => ({ ...s })),
+            tags:       portfolioManager._loadTags(),
+            history,
+            historySym,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        localStorage.setItem('bvc_fb_lastsync', new Date().toLocaleString('fr-FR'));
+        updateFbSyncStatus();
+        portfolioManager.showNotification('✅ Portefeuille envoyé sur Firebase', 'success');
+    } catch(e) {
+        portfolioManager.showNotification('❌ Erreur envoi Firebase : ' + e.message, 'error');
+    }
+}
+
+async function firebasePortfolioPull() {
+    const user = firebase.auth().currentUser;
+    if (!user) { portfolioManager.showNotification('❌ Connectez-vous d\'abord', 'error'); return; }
+    try {
+        const doc = await firebase.firestore().collection('portfolios').doc(user.uid).get();
+        if (!doc.exists) { portfolioManager.showNotification('ℹ️ Aucune donnée Firebase pour ce compte', 'info'); return; }
+        const d = doc.data();
+        if (Array.isArray(d.data)) {
+            portfolioManager.stocks = d.data.map(s =>
+                new Stock(s.id, s.symbole, s.nom || COMPANY_NAMES[s.symbole], s.quantite, s.prixAchat, s.prixActuel, s.frais, s.dateAjout)
+            );
+        }
+        if (d.history)    localStorage.setItem('portfolio_history', JSON.stringify(d.history));
+        if (d.historySym) localStorage.setItem('portfolio_history_sym', JSON.stringify(d.historySym));
+        if (d.tags) portfolioManager._saveTags(d.tags);
+        portfolioManager.save();
+        portfolioManager.render();
+        localStorage.setItem('bvc_fb_lastsync', new Date().toLocaleString('fr-FR'));
+        updateFbSyncStatus();
+        portfolioManager.showNotification('✅ Portefeuille récupéré depuis Firebase', 'success');
+    } catch(e) {
+        portfolioManager.showNotification('❌ Erreur récupération Firebase : ' + e.message, 'error');
+    }
+}
+
+// Ce navigateur garde une copie locale (localStorage 'portfolio_casa') qui a
+// priorité sur le serveur — utile hors-ligne, mais ça veut dire qu'une donnée
+// ajoutée depuis un autre navigateur/appareil (mode invité) n'apparaît jamais
+// ici automatiquement. Ce bouton force à écraser la copie locale par celle du
+// serveur (ou de Firestore si connecté).
+async function reloadGuestPortfolioFromServer() {
+    if (!confirm('Remplacer le portefeuille affiché ici par la version enregistrée sur le serveur ?')) return;
+    const user = firebase.auth().currentUser;
+    if (user) {
+        await firebasePortfolioPull();
+        closeFirebaseSyncModal();
+        return;
+    }
+    localStorage.removeItem('portfolio_casa');
+    location.reload();
+}
 
 // ── MASI ─────────────────────────────────────────────────────────────────
 async function loadMASI() {

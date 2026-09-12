@@ -1,34 +1,53 @@
 <?php
-// api/portfolio-dashboard.php — Dashboard portefeuille complet
-// Retourne : KPIs globaux + detail par ligne + snapshot horodaté
+// api/portfolio-dashboard.php — Calcul des KPIs d'un portefeuille
+// Le portefeuille par compte utilisateur vit désormais dans Firestore (côté client) :
+// portfolio-dashboard.html le lit lui-même puis POST le tableau `stocks` ici pour le calcul.
+// Sans POST, fallback sur le portefeuille anonyme partagé (portfolio_data.json).
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST');
+header('Access-Control-Allow-Headers: Content-Type');
 
 const COMMISSION      = 0.0099;   // 0.99 % à l'achat ET à la vente
 const TAXE_PLUS_VALUE = 0.15;     // 15 % sur les plus-values nettes
+const MAX_LIGNES      = 5000;     // garde-fou anti-abus (endpoint non authentifié)
 
-// ── Chargement du portefeuille ──────────────────────────────────────────────
-$token = $_GET['token'] ?? '';
-$stocks = [];
-
-if ($token) {
-    require_once __DIR__ . '/db.php';
-    $db   = getDB();
-    $user = getUserByToken($db, $token);
-    if ($user) {
-        $stmt = $db->prepare("SELECT data FROM portfolios WHERE user_id = ?");
-        $stmt->execute([(int)$user['id']]);
-        $row = $stmt->fetch();
-        if ($row) $stocks = json_decode($row['data'], true) ?: [];
-    }
+function isValidStockLine($s) {
+    return is_array($s)
+        && isset($s['symbole']) && is_string($s['symbole']) && $s['symbole'] !== ''
+        && isset($s['quantite'])   && is_numeric($s['quantite'])
+        && isset($s['prixAchat'])  && is_numeric($s['prixAchat'])
+        && isset($s['prixActuel']) && is_numeric($s['prixActuel']);
 }
 
-if (empty($stocks)) {
-    $file = __DIR__ . '/portfolio_data.json';
-    if (file_exists($file)) {
-        $payload = json_decode(file_get_contents($file), true);
-        $stocks  = (isset($payload['data'])) ? $payload['data'] : $payload;
+// ── Chargement du portefeuille ──────────────────────────────────────────────
+$stocks = [];
+
+try {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $body    = file_get_contents('php://input');
+        $payload = json_decode($body, true);
+        $posted  = $payload['stocks'] ?? null;
+        if (!is_array($posted)) {
+            echo json_encode(['success' => false, 'error' => 'Champ "stocks" invalide']);
+            exit;
+        }
+        if (count($posted) > MAX_LIGNES) {
+            echo json_encode(['success' => false, 'error' => 'Portefeuille trop volumineux']);
+            exit;
+        }
+        $stocks = array_values(array_filter($posted, 'isValidStockLine'));
+    } else {
+        $file = __DIR__ . '/portfolio_data.json';
+        if (file_exists($file)) {
+            $payload = json_decode(file_get_contents($file), true);
+            $raw     = (isset($payload['data'])) ? $payload['data'] : $payload;
+            if (is_array($raw)) $stocks = array_values(array_filter($raw, 'isValidStockLine'));
+        }
     }
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => 'Erreur de lecture du portefeuille']);
+    exit;
 }
 
 if (empty($stocks)) {

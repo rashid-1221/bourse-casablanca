@@ -1414,6 +1414,10 @@
                     🚪 <span class="btn-text">Déconnexion</span>
                 </button>
             </div>
+            <button class="btn btn-ghost btn-sm" id="btn-firebase-sync" onclick="openFirebaseSyncModal()"
+                    title="Synchronisation Firebase" style="padding:5px 8px;line-height:1;">
+                🔥
+            </button>
             <div class="settings-menu" id="settingsMenu">
                 <button class="btn btn-ghost btn-sm settings-trigger" onclick="toggleSettings(event)"
                         title="Paramètres" style="padding:5px 8px;line-height:1;display:flex;align-items:center;justify-content:center;">
@@ -2660,8 +2664,12 @@
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="config.js?v=3"></script>
-<script src="script.js?v=8"></script>
+<script src="script.js?v=11"></script>
 
 <script>
 /* ═══════════════════════════════════════════════
@@ -5887,6 +5895,40 @@ async function testerEmailSettings() {
         <button onclick="authManager.closeModal();authManager.openModal('login')" class="btn btn-ghost" style="padding:10px 22px;">🔐 Se connecter</button>
     </div>
     <button onclick="authManager.closeModal()" style="margin-top:16px;background:none;border:none;color:var(--text3);font-size:0.82em;cursor:pointer;text-decoration:underline;">Annuler</button>
+</div>
+
+<!-- Modale Synchro Firebase (push/pull manuel du portefeuille) -->
+<div id="firebase-sync-overlay" onclick="if(event.target===this)closeFirebaseSyncModal()" style="
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7);
+    z-index:9200; backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+      padding:28px 32px;width:min(420px,94vw);display:flex;flex-direction:column;gap:16px;
+      box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="font-size:1.1em;font-weight:700;">🔥 Synchro Firebase</h3>
+        <button onclick="closeFirebaseSyncModal()" style="background:none;border:none;color:var(--text3);font-size:1.3em;cursor:pointer;padding:4px;">✕</button>
+    </div>
+    <div id="fbsync-status" style="font-size:0.85em;color:var(--text2);"></div>
+    <div id="fbsync-lastsync" style="font-size:0.78em;color:var(--text3);"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <button onclick="firebasePortfolioPush()" class="btn btn-primary" style="font-weight:600;">⬆ Envoyer ce portefeuille vers Firebase</button>
+        <button onclick="firebasePortfolioPull()" class="btn btn-ghost">⬇ Récupérer depuis Firebase</button>
+    </div>
+    <div style="font-size:0.72em;color:var(--text3);line-height:1.5;">
+        Astuce : cliquez "Envoyer" sur l'appareil qui a les données les plus à jour (ex. ce PC),
+        puis "Récupérer" sur l'autre appareil (ex. votre téléphone) pour avoir exactement
+        le même portefeuille partout.
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
+        <button onclick="reloadGuestPortfolioFromServer()" class="btn btn-ghost" style="width:100%;font-size:0.85em;">
+            🔄 Mon tableau n'est pas à jour → recharger depuis le serveur
+        </button>
+        <div style="font-size:0.7em;color:var(--text3);margin-top:6px;line-height:1.4;">
+            À utiliser si des lignes ajoutées ailleurs n'apparaissent pas ici : ça remplace la copie
+            gardée dans ce navigateur par celle enregistrée sur le serveur.
+        </div>
+    </div>
+  </div>
 </div>
 
 <!-- ── Modal Détail Actualité ── -->
